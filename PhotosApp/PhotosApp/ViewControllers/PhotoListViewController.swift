@@ -37,13 +37,23 @@ class PhotoListViewController: NSViewController {
     
     var dataSource: [PhotoListDisplayable]? = nil
     
-    var imageSearchDirectories: [NSURL]? = [NSURL.init(fileURLWithPath: "/Users/arshadtp/Desktop")]
+    var imageSearchDirectories: [NSURL]? = nil {
+        didSet {
+            loadImages()
+        }
+    }
     
     private let sizeFormatter = ByteCountFormatter()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        loadImages()
+        if imageSearchDirectories == nil {
+            imageSearchDirectories = [NSURL.init(fileURLWithPath: "/Users/arshadtp/Desktop"),
+                                      NSURL.init(fileURLWithPath: "/Users/arshadtp/Downloads"),
+                                      NSURL.init(fileURLWithPath: "/Users/arshadtp/Documents")]
+
+        }
+//        loadImages()
         // Do any additional setup after loading the view.
     }
     
