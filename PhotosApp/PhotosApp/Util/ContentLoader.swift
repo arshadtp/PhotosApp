@@ -11,47 +11,56 @@ import Cocoa
 
 struct ContentLoader {
     
-    static func loadContentsFrom(directory url: NSURL) -> [Metadata]? {
+    static func loadContentsFrom(directory url: NSURL, completion: @escaping  (_ result:[Metadata]?, _ error: Error?) -> ())   {
         
-        let requiredAttributes = [URLResourceKey.localizedNameKey, URLResourceKey.effectiveIconKey,
-                                  URLResourceKey.typeIdentifierKey, URLResourceKey.contentModificationDateKey,
-                                  URLResourceKey.fileSizeKey, URLResourceKey.isDirectoryKey,
-                                  URLResourceKey.isPackageKey]
-        if let enumerator = FileManager.default.enumerator(at: url as URL,
-                                                           includingPropertiesForKeys: requiredAttributes,
-                                                           options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants],
-                                                           errorHandler: nil) {
-            
-            var contents = [Metadata]()
-            while let url = enumerator.nextObject() as? URL {
-                print("\(url)")
+        DispatchQueue.global().async {
+            let requiredAttributes = [URLResourceKey.localizedNameKey, URLResourceKey.effectiveIconKey,
+                                      URLResourceKey.typeIdentifierKey, URLResourceKey.contentModificationDateKey,
+                                      URLResourceKey.fileSizeKey, URLResourceKey.isDirectoryKey,
+                                      URLResourceKey.isPackageKey]
+            if let enumerator = FileManager.default.enumerator(at: url as URL,
+                                                               includingPropertiesForKeys: requiredAttributes,
+                                                               options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants],
+                                                               errorHandler: nil) {
                 
-                do {
-                    let properties = try  (url as NSURL).resourceValues(forKeys: requiredAttributes)
-                    contents.append(Metadata(fileURL: url,
-                                             name: properties[URLResourceKey.localizedNameKey] as? String ?? "",
-                                             date: properties[URLResourceKey.contentModificationDateKey] as? Date ?? Date.distantPast,
-                                             size: (properties[URLResourceKey.fileSizeKey] as? NSNumber)?.int64Value ?? 0,
-                                             icon: properties[URLResourceKey.effectiveIconKey] as? NSImage  ?? NSImage(),
-                                             isFolder: (properties[URLResourceKey.isDirectoryKey] as? NSNumber)?.boolValue ?? false,
-                                             color: NSColor()))
+                var contents = [Metadata]()
+                while let url = enumerator.nextObject() as? URL {
+                    print("\(url)")
+                    
+                    do {
+                        let properties = try  (url as NSURL).resourceValues(forKeys: requiredAttributes)
+                        contents.append(Metadata(fileURL: url,
+                                                 name: properties[URLResourceKey.localizedNameKey] as? String ?? "",
+                                                 date: properties[URLResourceKey.contentModificationDateKey] as? Date ?? Date.distantPast,
+                                                 size: (properties[URLResourceKey.fileSizeKey] as? NSNumber)?.int64Value ?? 0,
+                                                 icon: properties[URLResourceKey.effectiveIconKey] as? NSImage  ?? NSImage(),
+                                                 isFolder: (properties[URLResourceKey.isDirectoryKey] as? NSNumber)?.boolValue ?? false,
+                                                 color: NSColor()))
+                    }
+                    catch {
+                        print("Error reading file attributes")
+                        completion(nil, error)
+                        return
+                    }
                 }
-                catch {
-                    print("Error reading file attributes")
-                }
+                completion(contents, nil)
+                return
             }
-            return contents
+            completion(nil, nil)
+
         }
-        return nil
     }
     
-    static func loadImagesFrom(directory url: NSURL) -> [Metadata]? {
+    static func loadImagesFrom(directory url: NSURL, completion:  @escaping (_ result:[Metadata]?, _ error: Error?) -> ()){
         
-        guard let contents = loadContentsFrom(directory: url) else {
-            return nil
+        loadContentsFrom(directory: url) { (contents, error) in
+            if let contents =  contents {
+                let images = contents.filter { return Utilities.isImageFile(name: $0.name)}
+                completion(images, nil)
+            } else {
+                completion(contents, error)
+            }
         }
-        let images = contents.filter { return Utilities.isImageFile(name: $0.name)}
-        return images
     }
 }
 

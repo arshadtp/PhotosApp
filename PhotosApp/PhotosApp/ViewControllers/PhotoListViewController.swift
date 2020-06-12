@@ -35,26 +35,17 @@ class PhotoListViewController: NSViewController {
     
     @IBOutlet weak var photoListView: NSTableView!
     
-    var dataSource: [PhotoListDisplayable]? = nil
-    
-    var imageSearchDirectories: [NSURL]? = nil {
+    var photos: [PhotoListDisplayable]? = nil {
         didSet {
-            loadImages()
+            photoListView?.reloadData()
         }
     }
+    
     
     private let sizeFormatter = ByteCountFormatter()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        if imageSearchDirectories == nil {
-            imageSearchDirectories = [NSURL.init(fileURLWithPath: "/Users/arshadtp/Desktop"),
-                                      NSURL.init(fileURLWithPath: "/Users/arshadtp/Downloads"),
-                                      NSURL.init(fileURLWithPath: "/Users/arshadtp/Documents")]
-
-        }
-//        loadImages()
-        // Do any additional setup after loading the view.
     }
     
     override var representedObject: Any? {
@@ -62,28 +53,13 @@ class PhotoListViewController: NSViewController {
             // Update the view, if already loaded.
         }
     }
-    
-    private func loadImages() {
-        
-        guard let imageSearchDirectories = imageSearchDirectories else {
-            return
-        }
-        
-        dataSource = [PhotoListDisplayable]()
-        for url in imageSearchDirectories {
-            if let photos = ContentLoader.loadImagesFrom(directory: url) {
-                dataSource? += photos
-            }
-        }
-        photoListView.reloadData()
-    }
 }
 
 
 extension PhotoListViewController: NSTableViewDataSource {
     
     func numberOfRows(in tableView: NSTableView) -> Int {
-        return dataSource?.count ?? 0
+        return photos?.count ?? 0
     }
 }
 
@@ -105,7 +81,7 @@ extension PhotoListViewController: NSTableViewDelegate {
         dateFormatter.dateStyle = .long
         dateFormatter.timeStyle = .long
         
-        guard let item = dataSource?[row] else {
+        guard let item = photos?[row] else {
             return nil
         }
         
